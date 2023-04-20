@@ -42,26 +42,7 @@ app.use('/forgotpassword',forgotpasswordRouter);
 
 
 
-const User = require('./models/users.js');
-const Expense = require('./models/expenses.js');
-const Order = require('./models/order')
-const Forgotpassword = require('./models/forgotpassword');
-const Download = require('./models/download')
-
-User.hasMany(Expense);
-Expense.belongsTo(User);
-
-User.hasMany(Order);
-Order.belongsTo(User);
-
-User.hasMany(Forgotpassword);
-Forgotpassword.belongsTo(User);
-
-User.hasMany(Download);
-Download.belongsTo(User);
-
-const sequelize = require('./util/database');
-sequelize
-.sync()
+const mongoose = require('mongoose');
+mongoose.connect('mongodb+srv://Deep:Asdf%40123@cluster0.foriuln.mongodb.net/expense?retryWrites=true&w=majority')
 .then(() => app.listen(3000))
 .catch(err => console.log(err));

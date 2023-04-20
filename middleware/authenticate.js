@@ -3,10 +3,9 @@ const User = require('../models/users');
 
 exports.authenticate = (req,res,next) => {
     try{
-        console.log(req.body.name);
         const token = req.header('Authorization');
         const user = jwt.verify(token,process.env.JWT_TOKEN);
-        User.findByPk(user.userid)
+        User.findOne({_id : user.userid})
         .then(user => {
             req.user = user;
             next();

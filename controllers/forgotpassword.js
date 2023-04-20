@@ -17,25 +17,21 @@ try{
   const id = uuid.v4();
   let current = new Date();
   current.setMinutes(current.getMinutes() + 2);
-  const user = await User.findOne({where:{mail:mail}});
-  if(user)
-  await user.createForgotpassword({id:id,active:'true',expiresby:current});
+  const user = await User.findOne({mail:mail});
+    const forgotPwd = new Forgotpassword({_id:id,userId:user._id,expiresby: current });
+    await forgotPwd.save();
+    
   
-
   sgMail.setApiKey(process.env.SENDGRID_API);
-  setTimeout(() =>{
-    Forgotpassword.findOne({where:{id:id}})
-    .then(user => {
-       return user.update({active:'false'})
-    }) 
-    .catch(err => console.log(err));
+  setTimeout(async () =>{
+    await Forgotpassword.findOneAndUpdate({_id:id},{active:false})
   },120000);
  const msg = {
   to: 'sdeepicivil@gmail.com', 
   from: 'deepi.sakthivel@outlook.com',
   subject: 'Reset Password Link',
   text: 'Click on this link to reset a password',
-  html: `<a href='http://3.111.151.88:3000/forgotpassword/${id}'>Reset Password Link</a>`
+  html: `<a href='http://54.206.216.5:3000/forgotpassword/${id}'>Reset Password Link</a>`
 }
 await sgMail.send(msg);
 
@@ -51,9 +47,9 @@ catch(err){
 exports.getChangePwdPage = (req,res,next) =>{
   const id = req.params.id;
   
-  Forgotpassword.findOne({where:{id:id}})
+  Forgotpassword.findOne({_id:id})
   .then(user =>{
-    if(user.active == 'true')
+    if(user.active === true)
     res.sendFile(path.join(__dirname,`../views/changepassword.html`)); 
     else
     res.sendFile(path.join(__dirname,`../views/expiredlink.html`));
@@ -66,12 +62,12 @@ exports.postResetPassword = async (req,res,next) =>{
   const id = req.body.id;
 
   try{
-    const user = await Forgotpassword.findOne({where:{id:id}});
+    const user = await Forgotpassword.findOne({_id:id});
     const userid = user.userId;
-    const mainUser = await User.findOne({where:{id:userid}})
+    const mainUser = await User.findOne({_id:userid})
     
     bcrypt.hash(pwd,10,async (err,hash) =>{
-      await mainUser.update({password:hash});
+      await User.findOneAndUpdate({_id:userid},{password:hash});
     })
     res.status(201).json({passwordchanged: 'success'});
   }

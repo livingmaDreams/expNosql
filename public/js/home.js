@@ -11,7 +11,7 @@ function dailyExpenses(event){
 
   const obj ={name,amount,description,category};
 
-  axios.post(`http://3.111.151.88:3000/home/daily`,obj,{ headers:{"Authorization":token}})
+  axios.post(`http://54.206.216.5:3000/home/daily`,obj,{ headers:{"Authorization":token}})
   .then(res => {
      expenseList(res.data.newexpense)
      event.target.name.value = '';
@@ -35,7 +35,7 @@ document.getElementById('premium').addEventListener('click', pay);
 function pay(){
   const token = localStorage.getItem('expenseTracker');
 
-  axios.get('http://3.111.151.88:3000/purchase/premiumUser',{ headers:{"Authorization":token}})
+  axios.get('http://54.206.216.5:3000/purchase/premiumUser',{ headers:{"Authorization":token}})
   .then(res =>{
    if(res.data.message == 'Premium user')
      alert('Already a Premium User');
@@ -52,10 +52,10 @@ function pay(){
      const paymentid = response.razorpay_payment_id;
      const orderid= options.orderid ;
      const obj = {orderid,paymentid };
-      axios.post('http://3.111.151.88:3000/purchase/premiumUser',obj,{ headers:{"Authorization":token}} )
+      axios.post('http://54.206.216.5:3000/purchase/premiumUser',obj,{ headers:{"Authorization":token}} )
       .then(() => {
         alert('You are a Premium User Now')
-        window.location.href = 'http://3.111.151.88:3000/premium'})
+        window.location.href = 'http://54.206.216.5:3000/premium'})
       .catch(() => {
         alert('Something went wrong. Try Again!!!')
     });
@@ -103,7 +103,7 @@ function getDailyExpenses(page){
   document.getElementById('total-debit-amount').textContent = 0;  
   const token = localStorage.getItem('expenseTracker');
   const perPage = localStorage.getItem('expenseTrackerperPage');
-  axios.get(`http://3.111.151.88:3000/home/daily/${page}?perPage=${perPage}`,{ headers:{"Authorization":token}})
+  axios.get(`http://54.206.216.5:3000/home/daily/${page}?perPage=${perPage}`,{ headers:{"Authorization":token}})
   .then(res =>{
      let totalPage = res.data.totalpages;
      if(totalPage != 0){
@@ -136,7 +136,7 @@ function getMonthlyExpenses(page){
   document.getElementById('total-debit-amount').textContent = 0; 
   const token = localStorage.getItem('expenseTracker');
   const perPage = localStorage.getItem('expenseTrackerperPage');
-  axios.get(`http://3.111.151.88:3000/home/monthly/${page}?perPage=${perPage}`,{ headers:{"Authorization":token}})
+  axios.get(`http://54.206.216.5:3000/home/monthly/${page}?perPage=${perPage}`,{ headers:{"Authorization":token}})
   .then(res =>{
      let totalPage = res.data.totalpages;
      if(totalPage != 0){
@@ -169,7 +169,7 @@ function getYearlyExpenses(page){
   document.getElementById('total-debit-amount').textContent = 0; 
   const token = localStorage.getItem('expenseTracker');
   const perPage = localStorage.getItem('expenseTrackerperPage');
-  axios.get(`http://3.111.151.88:3000/home/yearly/${page}?perPage=${perPage}`,{ headers:{"Authorization":token}})
+  axios.get(`http://54.206.216.5:3000/home/yearly/${page}?perPage=${perPage}`,{ headers:{"Authorization":token}})
   .then(res =>{
      let totalPage = res.data.totalpages;
      if(totalPage != 0){
@@ -247,7 +247,7 @@ document.getElementById('pagination').addEventListener('click', (event)=>{
 
 function logout(){
    localStorage.setItem('expenseTracker','');
-   window.location.href="http://3.111.151.88:3000/login";
+   window.location.href="http://54.206.216.5:3000/login";
 }
 
 document.getElementById('credit-debit').addEventListener('click',expenseDetail);
@@ -288,26 +288,43 @@ function expenseDetail(event){
 
 
 function expenseDetailTab(event){
-   document.getElementById('close-detail').addEventListener('click' ,(et) => {
-        et.preventDefault();
+   document.getElementById('close-detail').addEventListener('click' ,() => {
       document.getElementById('expense-description').style.display='none';
    });
-   document.getElementById('edit-detail').addEventListener('click',(et)=>{
-      et.preventDefault();
-      console.log(document.getElementById('exp-desc-name'))
+   document.getElementById('edit-detail').addEventListener('click',()=>{
        document.getElementById('exp-desc-name').removeAttribute('disabled');
        document.getElementById('exp-desc-amount').removeAttribute('disabled');
-       document.getElementById('exp-desc-description').removeAttribute('disabled');
+       document.getElementById('exp-desc-description').removeAttribute('disabled'); 
+       document.getElementById('edit-detail').id='save-detail';  
+       document.getElementById('save-detail').innerHTML='SAVE'; 
+       document.getElementById('save-detail').addEventListener('click',()=>{
+         const id =  document.getElementById('exp-desc-id').value;
+         const name =  document.getElementById('exp-desc-name').value;
+        const amount =  document.getElementById('exp-desc-amount').value;
+          const description = document.getElementById('exp-desc-description').value;
+          const category = document.getElementById('detail-category').value;
+          const token = localStorage.getItem('expenseTracker');
+
+  const obj ={id,name,amount,description,category};
+
+  axios.post(`http://54.206.216.5:3000/home/daily/edit`,obj,{ headers:{"Authorization":token}})
+  .then(res => {
+   document.getElementById('expense-description').style.display='none';
+    location.reload();
+  })
+  .catch(err => console.log(err));
+      });  
    });
-   document.getElementById('del-detail').addEventListener('click',(et)=>{
-      et.preventDefault();
+   
+
+   document.getElementById('del-detail').addEventListener('click',()=>{
       const name = document.getElementById('exp-desc-name').value;
       const amount = document.getElementById('exp-desc-amount').value;
       const desc = document.getElementById('exp-desc-description').value;
       const category = document.getElementById('detail-category').value;
       const obj = {name,amount,desc,category};
       const token = localStorage.getItem('expenseTracker');
-      axios.post(`http://3.111.151.88:3000/home/daily/delete`,obj,{ headers:{"Authorization":token}})
+      axios.post(`http://54.206.216.5:3000/home/daily/delete`,obj,{ headers:{"Authorization":token}})
       .then(res => {
          document.getElementById('close-detail').click();
          event.target.parentElement.parentElement.remove();

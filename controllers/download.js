@@ -1,14 +1,14 @@
 const Download = require('../models/download');
+const Expense = require('../models/expenses.js');
+const User = require('../models/users.js');
 const aws = require('aws-sdk');
 
-exports.getDownloadLinks = (req,res,next) =>{
-  
-    req.user
-    .getDownloads()
-    .then(data => {
+exports.getDownloadLinks = async (req,res,next) =>{
+  try{
+    const data = await Download.find({userId:req.user._id})
         res.status(200).json({links:data})
-    })
-    .catch(err => res.status(404).json({status:'Something went wrong'}));
+    }
+    catch(err){res.status(404).json({status:'Something went wrong'})};
 
 }
 
@@ -44,16 +44,17 @@ function uploadToS3(data,filename){
 }
 exports.createLink = async (req,res,next) =>{
     try{
-    const exp = await req.user.getExpenses();
+    const exp = await Expense.find({userId:req.user._id});
     const jsonExp = JSON.stringify(exp);
-    const userId = req.user.id;
+    const userId = req.user._id;
     const filename = `expense${userId}/${new Date()}.txt`;
     const fileUrl = await uploadToS3(jsonExp,filename);
-     await req.user.createDownload({link:fileUrl});
+    const download = new Download({link:fileUrl,userId:userId,date: new Date()})
+     await download.save();
      res.status(200).json({url: fileUrl,status:'success'});
     }
     catch(err){
-        res.status(500).json({status:'false'})
+        res.status(500).json({status:'false',message:err})
     }
     
 }

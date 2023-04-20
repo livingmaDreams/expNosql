@@ -8,16 +8,16 @@ async function login(event){
    
    const obj = {mail,password};
    try{
-   const res = await axios.post('http://3.111.151.88:3000/login',obj);
+   const res = await axios.post('http://54.206.216.5:3000/login',obj);
      const token = res.data.token;
      const premiumUser = res.data.premium;
       if(res.status == 200){ 
         localStorage.setItem('expenseTracker',token);
         perPage(5);
-        if(premiumUser == 'false')
-       window.location.href = 'http://3.111.151.88:3000/home';
+        if(premiumUser == false)
+       window.location.href = 'http://54.206.216.5:3000/home';
        else
-       window.location.href='http://3.111.151.88:3000/premium';
+       window.location.href='http://54.206.216.5:3000/premium';
       }
     }
    catch(err){

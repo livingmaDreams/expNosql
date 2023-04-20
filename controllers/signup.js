@@ -1,17 +1,16 @@
-const User = require('../models/users.js');
+
 
 const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Razorpay = require('razorpay');
-const Order = require('../models/order.js');
-const sequelize = require('../util/database');
-
 
 exports.getSignupPage =(req,res,next) =>{
     if(req.originalUrl == '/signup')
      res.sendFile(path.join(__dirname,`../views${req.originalUrl}.html`));
 }
+
+const User = require('../models/users.js');
 
 exports.addUser =  async (req,res,next) => {
     
@@ -20,22 +19,22 @@ exports.addUser =  async (req,res,next) => {
     const password = req.body.password;
 try{
     bcrypt.hash(password,10,async (err,hash) => {
-    const [data,flag] = await User.findOrCreate({
-        where:{mail: mail},
-        defaults:{
-        name: name,
-        mail:mail,
-        password: hash,
-        isPremium: 'false'
-        }
-    });
-
-    if(flag)
-    res.status(201).json({newUseradded: 'success',data: data});
-    else
-    res.status(200).json({existingUser: 'found',data: data});
-})
-}
+       let user = await User.findOne({mail : mail});
+       console.log(user)
+       if(user){
+        res.status(200).json({existingUser: 'found'});
+       }
+       else {
+         user = new User({
+            name: name,
+            mail: mail,
+            password: hash
+         })
+         const data = await user.save()
+          res.status(201).json({newUseradded: 'success',data: data});
+       }
+    })
+}  
 catch(err){
     res.status(500).json({status:'failure'});
 }
@@ -54,14 +53,14 @@ exports.loginUser = async (req,res,next) =>{
     const mail = req.body.mail;
     const password = req.body.password;
     try{
-        const data = await User.findAll({where:{mail:mail}});
-        bcrypt.compare(password,data[0].password,(err,result) =>{
+        const data = await User.findOne({mail:mail});
+        bcrypt.compare(password,data.password,(err,result) =>{
             if(err)
               res.status(500).json({status:'something went wrong'});
             if(result === false)
             res.status(401).json({status:'wrongpassword'});
             else
-            res.status(200).json({status:'userfound',token: generateToken(data[0].id),premium: data[0].isPremium});
+            res.status(200).json({status:'userfound',token: generateToken(data._id),premium: data.isPremium});
         })        
       }
     catch(err){
@@ -77,16 +76,19 @@ exports.getPremiumPage = (req,res,next) =>{
     res.sendFile(path.join(__dirname,`../views/premium.html`)); 
 }
 
+const Expense = require('../models/expenses.js');
+
 exports.getDailyExpenses = async(req,res,next) =>{
     const page = req.params.page;
     const limit = +req.query.perPage;
     let tDate = new Date().getDate();
 try{
-    const date = sequelize.fn('date_format', sequelize.col('createdAt'), '%d');
-    const where = sequelize.where(date,tDate)
-    const totalExp = await req.user.getExpenses({where: where});
-    const exp = await req.user.getExpenses({where: where, offset:((page-1)*limit),limit: +limit});
+    const totalExp =await Expense.find({userId: req.user._id});
+    const dailyExp = totalExp.map(exp => {
+        if(exp.createdAt.getDate() === tDate)
+        return exp });
     const pages = Math.ceil(totalExp.length/limit);
+    const exp = dailyExp.slice((page-1)*limit,page*limit)
     if(page == '1')
     res.status(200).json({expenses:exp,totalpages: pages});
     else
@@ -104,11 +106,12 @@ exports.getMonthlyExpenses = async (req,res,next) =>{
     tMonth = tMonth + 1;
     const limit = +req.query.perPage;
 try{
-    const month = sequelize.fn('date_format', sequelize.col('createdAt'), '%m');
-    const where = sequelize.where(month,tMonth)
-    const totalExp = await req.user.getExpenses({where: where});
-    const exp = await req.user.getExpenses({where: where, offset:((page-1)*limit),limit: limit});
+    const totalExp =await Expense.find({userId: req.user._id});
+    const monthlyExp = totalExp.map(exp => {
+        if(exp.createdAt.getMonth() + 1 === tMonth)
+        return exp });
     const pages = Math.ceil(totalExp.length/limit);
+    const exp = monthlyExp.slice((page-1)*limit,page*limit)
     if(page == '1')
     res.status(200).json({expenses:exp,totalpages: pages});
     else
@@ -124,11 +127,12 @@ exports.getYearlyExpenses = async (req,res,next) =>{
 const yr = new Date().getFullYear();
 const limit = +req.query.perPage;
 try{
-    const year = sequelize.fn('date_format', sequelize.col('createdAt'), '%Y');
-    const where = sequelize.where(year,yr)
-    const totalExp = await req.user.getExpenses({where: where});
-    const exp = await req.user.getExpenses({where: where, offset:((page-1)*limit),limit: limit});
+    const totalExp =await Expense.find({userId: req.user._id});
+    const monthlyExp = totalExp.map(exp => {
+        if(exp.createdAt.getFullYear()  === yr)
+        return exp });
     const pages = Math.ceil(totalExp.length/limit);
+    const exp = monthlyExp.slice((page-1)*limit,page*limit)
     if(page == '1')
     res.status(200).json({expenses:exp,totalpages: pages});
     else
@@ -139,44 +143,61 @@ catch(err){
 }
 }
 
+
+
 exports.postDailyExpenses = (req,res,next) =>{
     const name = req.body.name;
     const category = req.body.category;
     const description = req.body.description;
     const amount = req.body.amount;
  
-req.user
-.createExpense({
-        name:name,
-        category:category,
-        description:description,
-        amount:amount
-    })
-.then(data => {
-        res.status(200).json({newexpense:data})
-    })
-.catch(err => console.log(err));  
+ try{
+   const exp = new Expense({
+    name:name,
+    category:category,
+    description:description,
+    amount:amount,
+    userId: req.user._id});
+
+const data = exp.save();
+res.status(200).json({newexpense:data})
+}
+catch(err){
+    console.log(err)
+};  
 }
 
-exports.delExpense = (req,res,next) =>{
+exports.editExpenses =  async (req,res,next) =>{
+    const name = req.body.name;
+    const amount = req.body.amount;
+    const desc = req.body.description;
+    const category = req.body.category;
+    const id = req.body.id;
+    try{
+         await  Expense.findOneAndUpdate({_id:id},{name:name,amount:amount,description:desc,category:category});
+            res.status(200).json({edited:'true'})
+    }catch(err){
+        res.status(404).json({edited:'false'})
+    };
+ }
+
+exports.delExpense = async (req,res,next) =>{
     const name = req.body.name;
     const amount = req.body.amount;
     const desc = req.body.desc;
     const category = req.body.category;
-     req.user
-     .getExpenses({where:{name:name,amount:amount,description:desc,category:category}})
-     .then(exp => {
-        console.log(exp)
-         return exp[0].destroy();
-        })
-      .then(() => res.status(200).json({deleted:'true'}))
-       .catch(err => res.status(404).json({deleted:'false'}));
+
+     try{
+       const exp =  await Expense.deleteOne({userId : req.user._id,name:name,amount:amount,description:desc,category:category})
+        res.status(200).json({deleted:'true'})
+     }
+     catch(err) {res.status(404).json({deleted:'false'})};
  }
 
+const Order = require('../models/order.js');
 
-exports.buyPremium = async (req,res,next) =>{
-
-  
+exports.buyPremium = (req,res,next) =>{
+   
     if(req.user.isPremium == 'true')
     res.status(200).json({message:"Premium user"})
     else{
@@ -188,8 +209,9 @@ exports.buyPremium = async (req,res,next) =>{
     const amount = 2000;
     instances.orders.create({amount})
     .then(data => {
-     razorId = data.id;
-     return req.user.createOrder({orderid: razorId,status: 'PENDING'})
+        razorId = data.id;
+     const order = new Order({orderid: razorId,userId: req.user._id})
+     return order.save();
     })
     .then(() => res.status(200).json({orderid: razorId,key: instances.key_id,amount: amount}) )
     .catch(err => res.status(403).json({ message: 'Something went wrong', error: err}));
@@ -199,27 +221,29 @@ exports.buyPremium = async (req,res,next) =>{
 exports.updatePremium = (req,res,next) => {
     const orderid = req.body.orderid;
     const paymentid = req.body.paymentid;
-    Order.findOne({where:{orderid:orderid}})
+    Order.findOne({orderid:orderid})
     .then(order => {
-        return order.update({paymentid: paymentid,status:'SUCCESS'})
+        return order.updateOne({paymentid: paymentid,status:'SUCCESS'})
+    })
+    .then(() => {
+        return req.user.updateOne({isPremium: true})
     })
     .then(() =>{
-        return req.user.update({isPremium: 'true'})
+        res.status(200).json({message: 'TRANSACTION SUCCESS'})
     })
-    .then(() => res.status(200).json({message: 'TRANSACTION SUCCESS'}))
     .catch(err => res.status(403).json({ error:err, message: 'TRANSACTION FAILED' }));
 }
 
 exports.getLeadershipRank = async (req,res,next) =>{
     
     let userExp =[];
-  
-    const users = await User.findAll();
+    const users = await User.find();
      for(let user of users){
         let obj={};
         let total=0;
         let userName = user.name;
-        const expenses = await user.getExpenses();
+        let id = user._id;
+        const expenses = await Expense.find({userId:id});
          for(let expense of expenses){
               if(expense.category == 'credit')
                 total = total + expense.amount;
