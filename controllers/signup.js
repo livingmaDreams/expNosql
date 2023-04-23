@@ -213,7 +213,7 @@ exports.buyPremium = (req,res,next) =>{
      const order = new Order({orderid: razorId,userId: req.user._id})
      return order.save();
     })
-    .then(() => res.status(200).json({orderid: razorId,key: instances.key_id,amount: amount}) )
+    .then(() => res.status(200).json({orderid: razorId,amount: amount}) )
     .catch(err => res.status(403).json({ message: 'Something went wrong', error: err}));
     }
 }

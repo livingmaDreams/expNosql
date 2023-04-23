@@ -3,7 +3,6 @@ document.getElementById('download').addEventListener('click', downloadLink);
 
 function downloadLink(event){
   event.preventDefault();
-  console.log('hi')
   document.getElementById('download-tab').style.display='flex';
   const token = localStorage.getItem('expenseTracker');
   const div = document.getElementById('download-tab');

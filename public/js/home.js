@@ -252,17 +252,20 @@ function logout(){
 
 document.getElementById('credit-debit').addEventListener('click',expenseDetail);
 
+
 function expenseDetail(event){
    if(event.target.id == 'expense-list-name'){
       const name = event.target.textContent;
       const amount = event.target.parentElement.nextElementSibling.firstElementChild.textContent;
       const desc = event.target.parentElement.parentElement.nextElementSibling.textContent;
       const category = event.target.parentElement.parentElement.nextElementSibling.nextElementSibling.textContent;
+      const id = event.target.parentElement.nextElementSibling.nextElementSibling.textContent;
       document.getElementById('expense-description').style.display= 'flex';
       const div = document.getElementById('expense-description');
       div.innerHTML = `
       <h4>Expense Detail</h4>
       <label for="name">Name</label>
+      <input type="text" name="id" id="exp-desc-id" value=${id} hidden disabled>
       <input type="text" name="name" id="exp-desc-name" value=${name} disabled>
       <label for="name">Amount</label>
       <input type="text" name="amount" id="exp-desc-amount" value=${amount} disabled>
